@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+data/faiss_index/
+*.faiss
+*.pkl
+.pytest_cache/
+.venv/
+venv/
+*.log
+explain.readme
+tests
+pytest.ini
+*.pytest_cache/
+__init__.py

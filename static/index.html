@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGChat — Enterprise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080b14;
+      --surface: #0f1623;
+      --surface-2: #161e2e;
+      --border: #1e2d45;
+      --accent: #3b82f6;
+      --accent-2: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-xs: 6px;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+    }
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .logo {
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-text { font-weight: 700; font-size: 18px; }
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      background: rgba(139,92,246,0.2);
+      color: var(--accent-2);
+      padding: 2px 8px;
+      border-radius: var(--radius-xs);
+    }
+    .btn-new-chat {
+      margin: 16px;
+      padding: 12px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: box-shadow 0.2s;
+    }
+    .btn-new-chat:hover { box-shadow: 0 0 20px rgba(59,130,246,0.4); }
+    .section-title {
+      padding: 8px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .count-badge {
+      background: var(--surface-2);
+      padding: 1px 6px;
+      border-radius: var(--radius-xs);
+      font-size: 10px;
+    }
+    .doc-list { flex: 1; overflow-y: auto; padding: 0 8px; }
+    .doc-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 4px;
+      cursor: default;
+      transition: background 0.15s;
+    }
+    .doc-item:hover { background: var(--surface-2); }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .strategy-pill {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: var(--radius-xs);
+      background: rgba(59,130,246,0.15);
+      color: var(--accent);
+    }
+    .btn-delete {
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      padding: 4px;
+      opacity: 0.6;
+      transition: opacity 0.15s;
+    }
+    .btn-delete:hover { opacity: 1; }
+    .session-list { padding: 0 8px 8px; max-height: 120px; overflow-y: auto; }
+    .session-item {
+      padding: 8px 12px;
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+    }
+    .session-item:hover { background: var(--surface-2); color: var(--text); }
+    .btn-upload {
+      margin: 12px 16px 16px;
+      padding: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .btn-upload:hover { border-color: var(--accent); }
+    /* Main */
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .session-id {
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-icon {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 4px;
+    }
+    .btn-icon:hover { color: var(--text); }
+    .health-status {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .health-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+    .health-dot.warn { background: var(--warning); }
+    .health-dot.error { background: var(--danger); }
+    .btn-toggle-panel {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      color: var(--muted);
+    }
+    .empty-state h2 { color: var(--text); font-size: 22px; font-weight: 600; }
+    .example-pills { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    .example-pill {
+      padding: 8px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    .example-pill:hover { border-color: var(--accent); }
+    .msg { max-width: 75%; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .msg-user {
+      align-self: flex-end;
+      background: #1e3a5f;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .msg-user .timestamp { font-size: 10px; color: var(--muted); text-align: right; margin-top: 6px; }
+    .msg-assistant {
+      align-self: flex-start;
+      background: var(--surface-2);
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      max-width: 85%;
+    }
+    .msg-assistant .answer { font-size: 14px; line-height: 1.6; }
+    .msg-assistant .answer p { margin-bottom: 8px; }
+    .sources-section { margin-top: 12px; }
+    .sources-toggle {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .sources-list { display: none; margin-top: 8px; gap: 8px; flex-direction: column; }
+    .sources-list.open { display: flex; }
+    .citation-card {
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .citation-card:hover, .citation-card.highlight { border-color: var(--accent-2); }
+    .citation-card.dense { border-left: 3px solid var(--accent); }
+    .citation-card.sparse { border-left: 3px solid var(--accent-2); }
+    .citation-card.both { border-left: 3px solid #6366f1; }
+    .citation-file { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+    .citation-excerpt { font-size: 11px; color: var(--muted); line-height: 1.4; }
+    .stats-bar { font-size: 11px; color: var(--muted); margin-top: 10px; }
+    .feedback-btns { display: flex; gap: 8px; margin-top: 10px; }
+    .feedback-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+    .feedback-btn.active-up { border-color: var(--success); background: rgba(16,185,129,0.15); }
+    .feedback-btn.active-down { border-color: var(--danger); background: rgba(239,68,68,0.15); }
+    .typing-indicator { display: flex; gap: 4px; padding: 8px 0; }
+    .typing-dot {
+      width: 8px; height: 8px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+    .input-area {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .input-row { display: flex; gap: 12px; align-items: flex-end; }
+    .chat-input {
+      flex: 1;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      resize: none;
+      max-height: 144px;
+      line-height: 1.5;
+    }
+    .chat-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+    .btn-send {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: box-shadow 0.2s, opacity 0.2s;
+    }
+    .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-send:not(:disabled):hover { box-shadow: 0 0 16px rgba(59,130,246,0.5); }
+    .input-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .mode-pill {
+      background: rgba(59,130,246,0.1);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: var(--radius-xs);
+    }
+    .topk-select {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius-xs);
+      padding: 2px 6px;
+      font-size: 11px;
+    }
+    /* Right panel */
+    .right-panel {
+      width: 320px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      padding: 20px;
+      overflow-y: auto;
+      flex-shrink: 0;
+      display: none;
+    }
+    .right-panel.open { display: block; }
+    .panel-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+    .stat-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .stat-value { font-size: 20px; font-weight: 700; }
+    .confidence-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .confidence-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+    .source-rank { font-size: 12px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .score-chart { margin-top: 12px; }
+    .chart-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 10px;
+    }
+    .chart-bar-label { width: 30px; color: var(--muted); }
+    .chart-bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; display: flex; }
+    .chart-bar-dense { background: var(--accent); height: 100%; }
+    .chart-bar-sparse { background: var(--accent-2); height: 100%; }
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      width: 100%;
+      height: 50vh;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 24px;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-title { font-size: 18px; font-weight: 600; }
+    .modal-close { background: none; border: none; color: var(--muted); font-size: 24px; cursor: pointer; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab {
+      padding: 8px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .tab.active { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.1); }
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .dropzone.dragover { border-color: var(--accent); background: rgba(59,130,246,0.05); }
+    .dropzone-icon { font-size: 40px; margin-bottom: 8px; }
+    .dropzone-text { color: var(--muted); font-size: 14px; }
+    .paste-area { display: none; }
+    .paste-area.active { display: block; }
+    .paste-textarea {
+      width: 100%;
+      height: 120px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      color: var(--text);
+      font-family: inherit;
+      resize: vertical;
+    }
+    .source-name-input {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+    }
+    .strategy-selector { display: flex; gap: 8px; margin: 16px 0; }
+    .strategy-pill-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      position: relative;
+    }
+    .strategy-pill-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.1); }
+    .strategy-pill-btn .tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      width: 200px;
+      color: var(--text);
+      z-index: 10;
+    }
+    .strategy-pill-btn:hover .tooltip { display: block; }
+    .btn-ingest {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-ingest:disabled { opacity: 0.5; cursor: not-allowed; }
+    .progress-area { margin-top: 16px; display: none; }
+    .progress-area.active { display: block; }
+    .progress-bar {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.5s;
+      width: 0%;
+    }
+    .progress-text { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .success-check { text-align: center; padding: 20px; display: none; }
+    .success-check.active { display: block; }
+    .check-icon { font-size: 48px; color: var(--success); animation: scaleIn 0.4s ease; }
+    @keyframes scaleIn { from { transform: scale(0); } to { transform: scale(1); } }
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      animation: toastIn 0.3s ease;
+      max-width: 360px;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+    .toast.success { background: rgba(16,185,129,0.15); border: 1px solid var(--success); color: var(--success); }
+    .toast.error { background: rgba(239,68,68,0.15); border: 1px solid var(--danger); color: var(--danger); }
+    .toast.info { background: rgba(59,130,246,0.15); border: 1px solid var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M14 2L26 8.5V19.5L14 26L2 19.5V8.5L14 2Z" stroke="#3b82f6" stroke-width="2" fill="rgba(59,130,246,0.1)"/>
+        <circle cx="14" cy="14" r="4" fill="#8b5cf6"/>
+      </svg>
+      <span class="logo-text">RAGChat</span>
+      <span class="badge">Enterprise</span>
+    </div>
+    <button class="btn-new-chat" onclick="newChat()">+ New Chat</button>
+    <div class="section-title">Documents <span class="count-badge" id="docCount">0</span></div>
+    <div class="doc-list" id="docList"></div>
+    <div class="section-title">Recent Sessions</div>
+    <div class="session-list" id="sessionList"></div>
+    <button class="btn-upload" onclick="openModal()">Upload Document</button>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="session-id">
+        <span id="sessionDisplay">—</span>
+        <button class="btn-icon" onclick="copySession()" title="Copy session ID">📋</button>
+      </div>
+      <div class="health-status">
+        <div class="health-dot" id="healthDot"></div>
+        <span id="healthLabel">Checking...</span>
+      </div>
+      <button class="btn-icon" onclick="clearChat()" title="Clear chat">🗑</button>
+      <button class="btn-toggle-panel" onclick="togglePanel()" title="Analytics">≡</button>
+    </div>
+    <div class="chat-area" id="chatArea">
+      <div class="empty-state" id="emptyState">
+        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+          <circle cx="40" cy="40" r="30" stroke="#1e2d45" stroke-width="2"/>
+          <circle cx="40" cy="30" r="8" fill="#3b82f6" opacity="0.6"/>
+          <circle cx="25" cy="50" r="6" fill="#8b5cf6" opacity="0.6"/>
+          <circle cx="55" cy="50" r="6" fill="#8b5cf6" opacity="0.6"/>
+          <line x1="40" y1="38" x2="25" y2="44" stroke="#1e2d45" stroke-width="1.5"/>
+          <line x1="40" y1="38" x2="55" y2="44" stroke="#1e2d45" stroke-width="1.5"/>
+        </svg>
+        <h2>Ask anything about your documents</h2>
+        <div class="example-pills">
+          <button class="example-pill" onclick="fillQuery('Summarize the key points from my documents')">Summarize key points</button>
+          <button class="example-pill" onclick="fillQuery('What are the main topics covered?')">Main topics</button>
+          <button class="example-pill" onclick="fillQuery('Find specific details about policies or procedures')">Find details</button>
+        </div>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input-row">
+        <textarea class="chat-input" id="chatInput" rows="1" placeholder="Ask a question about your documents..." oninput="autoGrow(this); updateSendBtn()"></textarea>
+        <button class="btn-send" id="btnSend" disabled onclick="sendMessage()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <div class="input-meta">
+        <span class="mode-pill">RAG mode: Hybrid (Dense + Sparse)</span>
+        <label>Top-K: <select class="topk-select" id="topKSelect"><option value="3">3</option><option value="5" selected>5</option><option value="10">10</option></select></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <aside class="right-panel" id="rightPanel">
+    <div class="panel-title">Session Analytics</div>
+    <div class="stat-card">
+      <div class="stat-label">Total Messages</div>
+      <div class="stat-value" id="statMessages">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Average Latency</div>
+      <div class="stat-value" id="statLatency">— ms</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Confidence Score</div>
+      <div class="stat-value" id="statConfidence">—</div>
+      <div class="confidence-bar"><div class="confidence-fill" id="confidenceFill" style="width:0%;background:var(--success)"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Top Sources</div>
+      <div id="topSources"></div>
+    </div>
+    <div class="stat-card score-chart">
+      <div class="stat-label">Retrieval Scores (last message)</div>
+      <div id="scoreChart"></div>
+    </div>
+  </aside>
+
+  <!-- Upload Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Upload Document</span>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('file')">Upload File</button>
+        <button class="tab" onclick="switchTab('paste')">Paste Text</button>
+      </div>
+      <div id="fileTab">
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+          <div class="dropzone-icon">☁️</div>
+          <div class="dropzone-text">Drop PDF, DOCX, or TXT here<br><small>or click to browse (max 50MB)</small></div>
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt" hidden>
+        </div>
+      </div>
+      <div class="paste-area" id="pasteTab">
+        <textarea class="paste-textarea" id="pasteText" placeholder="Paste your text here..."></textarea>
+        <input class="source-name-input" id="sourceName" placeholder="Source name (e.g. meeting_notes)">
+      </div>
+      <div class="strategy-selector">
+        <button class="strategy-pill-btn active" data-strategy="fixed" onclick="selectStrategy(this)">
+          Fixed
+          <span class="tooltip">Split text into fixed-size token chunks with overlap</span>
+        </button>
+        <button class="strategy-pill-btn" data-strategy="sentence" onclick="selectStrategy(this)">
+          Sentence
+          <span class="tooltip">Group sentences until ~400 tokens, overlap last 2 sentences</span>
+        </button>
+        <button class="strategy-pill-btn" data-strategy="semantic" onclick="selectStrategy(this)">
+          Semantic
+          <span class="tooltip">Group similar sentences by embedding cosine similarity</span>
+        </button>
+      </div>
+      <button class="btn-ingest" id="btnIngest" onclick="ingestDocument()">Ingest Document</button>
+      <div class="progress-area" id="progressArea">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText">Loading file...</div>
+      </div>
+      <div class="success-check" id="successCheck">
+        <div class="check-icon">✓</div>
+        <p id="successMsg">Document ingested successfully</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    let sessionId = crypto.randomUUID();
+    let selectedStrategy = 'fixed';
+    let selectedFile = null;
+    let activeTab = 'file';
+    let eventSource = null;
+    let analytics = { latencies: [], sources: {}, messages: 0 };
+
+    document.getElementById('sessionDisplay').textContent = sessionId.slice(0, 8) + '...';
+
+    function autoGrow(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 144) + 'px';
+    }
+    function updateSendBtn() {
+      document.getElementById('btnSend').disabled = !document.getElementById('chatInput').value.trim();
+    }
+    function fillQuery(q) {
+      const input = document.getElementById('chatInput');
+      input.value = q;
+      autoGrow(input);
+      updateSendBtn();
+      input.focus();
+    }
+    function copySession() {
+      navigator.clipboard.writeText(sessionId);
+      toast('Session ID copied', 'info');
+    }
+    function newChat() {
+      sessionId = crypto.randomUUID();
+      document.getElementById('sessionDisplay').textContent = sessionId.slice(0, 8) + '...';
+      clearChat();
+      analytics = { latencies: [], sources: {}, messages: 0 };
+      updateAnalytics();
+    }
+    function clearChat() {
+      const area = document.getElementById('chatArea');
+      area.innerHTML = '';
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.id = 'emptyState';
+      empty.innerHTML = `<svg width="80" height="80" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="30" stroke="#1e2d45" stroke-width="2"/><circle cx="40" cy="30" r="8" fill="#3b82f6" opacity="0.6"/><circle cx="25" cy="50" r="6" fill="#8b5cf6" opacity="0.6"/><circle cx="55" cy="50" r="6" fill="#8b5cf6" opacity="0.6"/><line x1="40" y1="38" x2="25" y2="44" stroke="#1e2d45" stroke-width="1.5"/><line x1="40" y1="38" x2="55" y2="44" stroke="#1e2d45" stroke-width="1.5"/></svg><h2>Ask anything about your documents</h2><div class="example-pills"><button class="example-pill" onclick="fillQuery('Summarize the key points from my documents')">Summarize key points</button><button class="example-pill" onclick="fillQuery('What are the main topics covered?')">Main topics</button><button class="example-pill" onclick="fillQuery('Find specific details about policies or procedures')">Find details</button></div>`;
+      area.appendChild(empty);
+    }
+    function togglePanel() {
+      document.getElementById('rightPanel').classList.toggle('open');
+    }
+    function toast(msg, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = msg;
+      container.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+    async function checkHealth() {
+      try {
+        const res = await fetch('/health');
+        const data = await res.json();
+        const dot = document.getElementById('healthDot');
+        const label = document.getElementById('healthLabel');
+        const ok = data.postgres === 'ok' && data.embedding_model === 'ok';
+        dot.className = 'health-dot' + (ok ? '' : data.postgres === 'ok' ? ' warn' : ' error');
+        label.textContent = `${data.vector_db} · ${data.ollama === 'ok' ? 'LLM ready' : 'LLM fallback'}`;
+      } catch {
+        document.getElementById('healthDot').className = 'health-dot error';
+        document.getElementById('healthLabel').textContent = 'Offline';
+      }
+    }
+    async function loadDocuments() {
+      try {
+        const res = await fetch('/documents');
+        const docs = await res.json();
+        document.getElementById('docCount').textContent = docs.length;
+        const list = document.getElementById('docList');
+        list.innerHTML = docs.map(d => `
+          <div class="doc-item">
+            <div class="doc-info">
+              <div class="doc-name" title="${d.filename}">${d.filename}</div>
+              <div class="doc-meta">${d.chunk_count || 0} chunks · <span class="strategy-pill">${d.strategy || 'fixed'}</span></div>
+            </div>
+            <button class="btn-delete" onclick="deleteDoc('${d.id}','${d.filename.replace(/'/g,"\\'")}')" title="Delete">🗑</button>
+          </div>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+    async function loadSessions() {
+      try {
+        const res = await fetch('/sessions');
+        const data = await res.json();
+        const list = document.getElementById('sessionList');
+        list.innerHTML = (data.sessions || []).map(s => `
+          <div class="session-item" onclick="restoreSession('${s}')">${s.slice(0, 12)}...</div>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+    async function deleteDoc(id, name) {
+      if (!confirm(`Delete "${name}"?`)) return;
+      try {
+        await fetch(`/documents/${id}`, { method: 'DELETE' });
+        toast('Document deleted', 'success');
+        loadDocuments();
+      } catch (e) { toast('Delete failed', 'error'); }
+    }
+    async function restoreSession(sid) {
+      sessionId = sid;
+      document.getElementById('sessionDisplay').textContent = sessionId.slice(0, 8) + '...';
+      toast('Resuming session from history', 'info');
+      const res = await fetch(`/history/${sid}`);
+      const history = await res.json();
+      clearChat();
+      document.getElementById('emptyState')?.remove();
+      history.forEach(h => {
+        appendUserMsg(h.query);
+        appendAssistantMsg(h.answer, h.citations || [], h.retrieval_scores || [], h.chunks_used, h.latency_ms, h.id);
+      });
+      loadSessions();
+    }
+    function openModal() { document.getElementById('modalOverlay').classList.add('open'); resetModal(); }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+    function switchTab(tab) {
+      activeTab = tab;
+      document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (tab==='file'?i===0:i===1)));
+      document.getElementById('fileTab').style.display = tab === 'file' ? 'block' : 'none';
+      document.getElementById('pasteTab').classList.toggle('active', tab === 'paste');
+    }
+    function selectStrategy(btn) {
+      document.querySelectorAll('.strategy-pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedStrategy = btn.dataset.strategy;
+    }
+    function resetModal() {
+      selectedFile = null;
+      document.getElementById('progressArea').classList.remove('active');
+      document.getElementById('successCheck').classList.remove('active');
+      document.getElementById('btnIngest').disabled = false;
+      document.getElementById('progressFill').style.width = '0%';
+    }
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) selectedFile = e.dataTransfer.files[0];
+    });
+    document.getElementById('fileInput').addEventListener('change', e => {
+      if (e.target.files.length) selectedFile = e.target.files[0];
+    });
+    async function ingestDocument() {
+      const btn = document.getElementById('btnIngest');
+      btn.disabled = true;
+      const progress = document.getElementById('progressArea');
+      const fill = document.getElementById('progressFill');
+      const text = document.getElementById('progressText');
+      progress.classList.add('active');
+      const steps = ['Loading file...', 'Chunking...', 'Embedding...', 'Saving to vector DB...'];
+      let step = 0;
+      const interval = setInterval(() => {
+        if (step < steps.length) {
+          text.textContent = steps[step];
+          fill.style.width = ((step + 1) / steps.length * 80) + '%';
+          step++;
+        }
+      }, 800);
+      try {
+        let res;
+        if (activeTab === 'file') {
+          if (!selectedFile) { toast('Please select a file', 'error'); btn.disabled = false; clearInterval(interval); progress.classList.remove('active'); return; }
+          const form = new FormData();
+          form.append('file', selectedFile);
+          form.append('strategy', selectedStrategy);
+          res = await fetch('/ingest', { method: 'POST', body: form });
+        } else {
+          const pasteText = document.getElementById('pasteText').value.trim();
+          const sourceName = document.getElementById('sourceName').value.trim() || 'pasted_text';
+          if (!pasteText) { toast('Please paste some text', 'error'); btn.disabled = false; clearInterval(interval); progress.classList.remove('active'); return; }
+          res = await fetch('/ingest/text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: pasteText, source_name: sourceName, strategy: selectedStrategy })
+          });
+        }
+        clearInterval(interval);
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Ingest failed');
+        }
+        const data = await res.json();
+        fill.style.width = '100%';
+        document.getElementById('successCheck').classList.add('active');
+        document.getElementById('successMsg').textContent = `${data.chunk_count} chunks indexed`;
+        toast(`Document ingested successfully (${data.chunk_count} chunks)`, 'success');
+        loadDocuments();
+        setTimeout(closeModal, 2000);
+      } catch (e) {
+        clearInterval(interval);
+        toast(e.message, 'error');
+        btn.disabled = false;
+        progress.classList.remove('active');
+      }
+    }
+    function appendUserMsg(text) {
+      document.getElementById('emptyState')?.remove();
+      const area = document.getElementById('chatArea');
+      const div = document.createElement('div');
+      div.className = 'msg msg-user';
+      div.innerHTML = `<div>${escapeHtml(text)}</div><div class="timestamp">${new Date().toLocaleTimeString()}</div>`;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+    }
+    function appendAssistantMsg(answer, citations, scores, chunksUsed, latency, historyId) {
+      const area = document.getElementById('chatArea');
+      const div = document.createElement('div');
+      div.className = 'msg msg-assistant';
+      const citHtml = citations.map((c, i) => {
+        const cls = c.dense_score && c.sparse_score ? 'both' : c.dense_score ? 'dense' : 'sparse';
+        return `<div class="citation-card ${cls}" onclick="this.classList.toggle('highlight')">
+          <div class="citation-file">${escapeHtml(c.source_file)} · chunk ${c.chunk_index ?? i}</div>
+          <div class="citation-excerpt">${escapeHtml(c.excerpt || '')}</div>
+        </div>`;
+      }).join('');
+      div.innerHTML = `
+        <div class="answer">${marked.parse(answer)}</div>
+        ${citations.length ? `<div class="sources-section"><div class="sources-toggle" onclick="this.nextElementSibling.classList.toggle('open')">▸ Sources Used (${citations.length})</div><div class="sources-list">${citHtml}</div></div>` : ''}
+        <div class="stats-bar">Retrieved ${chunksUsed || 0} chunks · Dense + Sparse · ${((latency||0)/1000).toFixed(1)}s</div>
+        <div class="feedback-btns">
+          <button class="feedback-btn" onclick="sendFeedback(this,'${historyId}',1)">👍</button>
+          <button class="feedback-btn" onclick="sendFeedback(this,'${historyId}',-1)">👎</button>
+        </div>`;
+      area.appendChild(div);
+      area.scrollTop = area.scrollHeight;
+      updateAnalyticsFromMsg(citations, scores, latency);
+    }
+    function escapeHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+    async function sendFeedback(btn, historyId, rating) {
+      if (!historyId) return;
+      await fetch('/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_history_id: historyId, rating })
+      });
+      btn.parentElement.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('active-up','active-down'));
+      btn.classList.add(rating === 1 ? 'active-up' : 'active-down');
+    }
+    function updateAnalyticsFromMsg(citations, scores, latency) {
+      analytics.messages++;
+      if (latency) analytics.latencies.push(latency);
+      citations.forEach(c => {
+        analytics.sources[c.source_file] = (analytics.sources[c.source_file] || 0) + 1;
+      });
+      updateAnalytics(scores);
+    }
+    function updateAnalytics(lastScores) {
+      document.getElementById('statMessages').textContent = analytics.messages;
+      if (analytics.latencies.length) {
+        const avg = Math.round(analytics.latencies.reduce((a,b)=>a+b,0) / analytics.latencies.length);
+        document.getElementById('statLatency').textContent = avg + ' ms';
+      }
+      const totalCitations = Object.values(analytics.sources).reduce((a,b)=>a+b, 0);
+      const confidence = analytics.messages ? Math.min(100, Math.round(totalCitations / analytics.messages * 20)) : 0;
+      document.getElementById('statConfidence').textContent = confidence + '%';
+      const fill = document.getElementById('confidenceFill');
+      fill.style.width = confidence + '%';
+      fill.style.background = confidence > 70 ? 'var(--success)' : confidence > 40 ? 'var(--warning)' : 'var(--danger)';
+      const sorted = Object.entries(analytics.sources).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      document.getElementById('topSources').innerHTML = sorted.map(([name,count]) =>
+        `<div class="source-rank"><span>${escapeHtml(name)}</span><span>${count}</span></div>`
+      ).join('') || '<span style="color:var(--muted);font-size:12px">No sources yet</span>';
+      if (lastScores && lastScores.length) {
+        const avgDense = lastScores.filter(s=>s.dense_score).reduce((a,s)=>a+s.dense_score,0) / (lastScores.filter(s=>s.dense_score).length||1);
+        const avgSparse = lastScores.filter(s=>s.sparse_score).reduce((a,s)=>a+s.sparse_score,0) / (lastScores.filter(s=>s.sparse_score).length||1);
+        const max = Math.max(avgDense, avgSparse, 0.01);
+        document.getElementById('scoreChart').innerHTML = `
+          <div class="chart-bar"><span class="chart-bar-label">Dense</span><div class="chart-bar-track"><div class="chart-bar-dense" style="width:${(avgDense/max*100).toFixed(0)}%"></div></div></div>
+          <div class="chart-bar"><span class="chart-bar-label">Sparse</span><div class="chart-bar-track"><div class="chart-bar-sparse" style="width:${(avgSparse/max*100).toFixed(0)}%"></div></div></div>`;
+      }
+    }
+    function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const query = input.value.trim();
+      if (!query) return;
+      input.value = '';
+      input.style.height = 'auto';
+      updateSendBtn();
+      appendUserMsg(query);
+      const topK = document.getElementById('topKSelect').value;
+      const area = document.getElementById('chatArea');
+      const assistantDiv = document.createElement('div');
+      assistantDiv.className = 'msg msg-assistant';
+      assistantDiv.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+      area.appendChild(assistantDiv);
+      area.scrollTop = area.scrollHeight;
+      let fullAnswer = '';
+      let firstToken = false;
+      if (eventSource) eventSource.close();
+      eventSource = new EventSource(`/chat/stream/${sessionId}?query=${encodeURIComponent(query)}&top_k=${topK}`);
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.error) { toast(data.error, 'error'); eventSource.close(); return; }
+        if (!data.done) {
+          if (!firstToken) {
+            assistantDiv.innerHTML = '<div class="answer"></div>';
+            firstToken = true;
+          }
+          fullAnswer += data.token;
+          assistantDiv.querySelector('.answer').innerHTML = marked.parse(fullAnswer);
+          area.scrollTop = area.scrollHeight;
+        } else {
+          eventSource.close();
+          const citHtml = (data.citations || []).map((c, i) => {
+            const cls = c.dense_score && c.sparse_score ? 'both' : c.dense_score ? 'dense' : 'sparse';
+            return `<div class="citation-card ${cls}"><div class="citation-file">${escapeHtml(c.source_file)} · chunk ${c.chunk_index ?? i}</div><div class="citation-excerpt">${escapeHtml(c.excerpt||'')}</div></div>`;
+          }).join('');
+          assistantDiv.innerHTML = `
+            <div class="answer">${marked.parse(fullAnswer)}</div>
+            ${data.citations?.length ? `<div class="sources-section"><div class="sources-toggle" onclick="this.nextElementSibling.classList.toggle('open')">▸ Sources Used (${data.citations.length})</div><div class="sources-list">${citHtml}</div></div>` : ''}
+            <div class="stats-bar">Retrieved ${data.chunks_used||0} chunks · Dense + Sparse · ${((data.latency_ms||0)/1000).toFixed(1)}s</div>
+            <div class="feedback-btns">
+              <button class="feedback-btn" onclick="sendFeedback(this,'${data.chat_history_id}',1)">👍</button>
+              <button class="feedback-btn" onclick="sendFeedback(this,'${data.chat_history_id}',-1)">👎</button>
+            </div>`;
+          updateAnalyticsFromMsg(data.citations||[], data.retrieval_scores||[], data.latency_ms);
+          loadSessions();
+        }
+      };
+      eventSource.onerror = () => { eventSource.close(); toast('Connection error', 'error'); };
+    }
+    document.getElementById('chatInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+    checkHealth();
+    setInterval(checkHealth, 30000);
+    loadDocuments();
+    loadSessions();
+  </script>
+</body>
+</html>
