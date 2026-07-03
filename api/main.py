@@ -34,14 +34,26 @@ async def lifespan(app: FastAPI):
     settings.faiss_path.mkdir(parents=True, exist_ok=True)
 
     logger.info("Starting RAGChat application...")
-    await get_postgres()
+
+    try:
+        await get_postgres()
+    except Exception as exc:  
+        logger.warning(
+            "Postgres initialization failed; continuing without DB: %s", exc
+        )
     await get_vector_store()
     await _rebuild_bm25_index()
     logger.info("Application startup complete")
     yield
 
-    db = await get_postgres()
-    await db.close()
+
+    try:
+        from memory.postgres_client import _postgres as _pg
+
+        if _pg is not None:
+            await _pg.close()
+    except Exception:
+        logger.debug("Postgres close skipped or failed during shutdown")
     logger.info("Application shutdown complete")
 
 
@@ -78,4 +90,4 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("api.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("api.main:app", host="0.0.0.0", port=8000)
